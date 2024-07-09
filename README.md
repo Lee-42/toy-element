@@ -51,7 +51,7 @@ pnpm create vite play --template vue-ts
 - utils: 工具函数
 
 9、修改子包的名称
-处理 core 叫 "toy-element", 其他都叫 "@toy-element/components"、"@toy-element/docs"。。。。
+除了 core 叫 "toy-element", 其他都叫 "@toy-element/components"、"@toy-element/docs"。。。。
 这样起名可以尽量避免重名, 避免与其他的开源重名
 
 10、安装依赖
@@ -177,3 +177,88 @@ module.exports = {
 ```
 
 15、在创建所有分包的入口之前, 在根目录跑 pnpm install
+
+#### 二、编写工具方法
+
+1、utils 新建 install.ts, 负责所有 vue 插件的安装
+
+```typescript
+import type { App, Plugin } from "vue";
+import { each } from "lodash-es";
+
+// SFCWithInstall 既可以是组件, 也可以是插件
+type SFCWithInstall<T> = T & Plugin;
+
+export function makeInstaller(components: Plugin[]): Plugin {
+  const installer = (app: App) => each(components, (c) => app.use(c));
+  return installer as Plugin;
+}
+
+export const withInstall = <T>(component: T) => {
+  (component as SFCWithInstall<T>).install = (app: App) => {
+    const name = (component as any).name;
+    app.component(name, component as Plugin);
+  };
+};
+```
+
+#### 三、创建 Button 组件
+
+1、创建 Button 文件夹, 每个组件的目录都类似下面这样
+
+- index.ts
+- Button.vue
+- Button.test.tsx
+- types.ts
+- style.css
+- constants.ts
+
+2、简单测试一下
+Button.vue
+
+```vue
+<template>
+  <button style="color: red">test button</button>
+</template>
+```
+
+index.ts
+
+```typescript
+import Button from "./Button.vue";
+import { withInstall } from "@toy-element/utils";
+
+export const ErButton = withInstall(Button);
+```
+
+components/index.ts。负责导出组件
+
+```typescript
+export * from "./Button";
+```
+
+core/components.ts。 负责引入
+
+```typescript
+import { ErButton } from "@toy-element/components";
+import type { Plugin } from "vue";
+
+export default [ErButton] as unknown as Plugin[];
+```
+
+core/index.ts。 core 的入口文件
+
+```typescript
+import { makeInstaller } from "@toy-element/utils";
+import components from "./components";
+
+const installer = makeInstaller(components);
+
+// 使用者在使用我们的包的时候, 可以以一个vue的plugin来使用, 用app.use() 来挂载到实例上面
+export * from "@toy-element/components";
+export default installer;
+```
+
+#### 四、在 playground 里面试一下
+
+1、
