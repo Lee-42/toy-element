@@ -659,7 +659,7 @@ pnpm install npm-run-all@^4.1.5 -Dw
 
 将 componets 的依赖移到根目录 package.json 下
 
-#### 八、Button 组件的开发
+#### 八、nvm 版本限定
 
 1、要统一开源库的版本, 根源一定要统一 nodejs 的版本
 新建.nvmrc
@@ -678,4 +678,655 @@ nvm use
 
 ```shell
 nvm use $(cat .nvmrc)
+```
+
+#### 九、大模型
+
+1、项目的所有需求分析、测试用例都是用大模型来做辅助的
+2、大模型推荐
+ChatGPT
+Poe
+Chandler
+Kimi
+
+3、需求分析 提示词
+
+- 身份定位: 角色-互联网产品经理、目标-产品需求分析和功能点设计
+- 前提条件:
+- 输出限定
+
+#### 十、Button 组件的开发
+
+0、TDD 的魅力
+
+1、新建 vitest.config.ts
+
+```typescript
+/// <reference types="vitest" />
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
+import vueJsx from "@vitejs/plugin-vue-jsx";
+
+export default defineConfig({
+  plugins: [vue(), vueJsx()],
+  test: {
+    globals: true,
+    environment: "jsdom",
+  },
+});
+```
+
+2、修改修改 test 脚本
+
+```json
+"test": "vitest --coverage"
+```
+
+3、新建 Button.test.tsx 测试用例
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { mount } from "@vue/test-utils";
+
+import Button from "./Button.vue";
+
+describe("Button.vue", () => {
+  // Props: type
+  it("should has the correct type class when type prop is set", () => {
+    const types = ["primary", "success", "warning", "danger", "info"];
+    types.forEach((type) => {
+      const wrapper = mount(Button, {
+        props: { type: type as any },
+      });
+      expect(wrapper.classes()).toContain(`er-button--${type}`);
+    });
+  });
+
+  // Props: size
+  it("should has the correct size class when size prop is set", () => {
+    const sizes = ["large", "default", "small"];
+    sizes.forEach((size) => {
+      const wrapper = mount(Button, {
+        props: { size: size as any },
+      });
+      expect(wrapper.classes()).toContain(`er-button--${size}`);
+    });
+  });
+
+  // Props: plain, round, circle
+  it.each([
+    ["plain", "is-plain"],
+    ["round", "is-round"],
+    ["circle", "is-circle"],
+    ["disabled", "is-disabled"],
+    ["loading", "is-loading"],
+  ])(
+    "should has the correct class when prop %s is set to true",
+    (prop, className) => {
+      const wrapper = mount(Button, {
+        props: { [prop]: true },
+        global: {
+          stubs: ["ErIcon"],
+        },
+      });
+      expect(wrapper.classes()).toContain(className);
+    }
+  );
+
+  it("should has the correct native type attribute when native-type prop is set", () => {
+    const wrapper = mount(Button, {
+      props: { nativeType: "submit" },
+    });
+    expect(wrapper.element.tagName).toBe("BUTTON");
+    expect((wrapper.element as any).type).toBe("submit");
+  });
+
+  // Props: tag
+  it("should renders the custom tag when tag prop is set", () => {
+    const wrapper = mount(Button, {
+      props: { tag: "a" },
+    });
+    expect(wrapper.element.tagName.toLowerCase()).toBe("a");
+  });
+
+  // Events: click
+  it("should emits a click event when the button is clicked", async () => {
+    const wrapper = mount(Button, {});
+    await wrapper.trigger("click");
+    expect(wrapper.emitted().click).toHaveLength(1);
+  });
+});
+```
+
+4、编写类型文件
+
+```typescript
+import type { Component, Ref } from "vue";
+
+export type ButtonType = "primary" | "sucess" | "warning" | "danger" | "info";
+export type NativeType = "button" | "reset" | "submit";
+export type ButtonSize = "large" | "default" | "small";
+
+export interface ButtonProps {
+  tag?: string | Component;
+  type?: string;
+  size?: ButtonSize;
+  nativeType?: NativeType;
+  disabled?: boolean;
+  loading?: boolean;
+  icon?: string;
+  circle?: boolean;
+  plain?: boolean;
+  round?: boolean;
+  autofocus?: boolean;
+  useThrottle?: boolean;
+  throttleDuration?: number;
+  loadingIcon?: string;
+}
+
+export interface ButtonEmits {
+  (e: "click", vol: MouseEvent): void;
+}
+
+export interface ButtonInstance {
+  ref: Ref<HTMLButtonElement | void>;
+}
+```
+
+```vue
+<template>
+  <component
+    :is="props.tag"
+    :ref="_ref"
+    :type="tag === 'button' ? nativeType : void 0"
+    :disabled="disabled || loading ? true : void 0"
+    class="er-button"
+    :class="{
+      [`er-button--${type}`]: type,
+      [`er-button--${size}`]: size,
+      'is-plain': plain,
+      'is-round': round,
+      'is-circle': circle,
+      'is-disabled': disabled,
+      'is-loading': loading,
+    }"
+  >
+    <slot></slot>
+  </component>
+</template>
+
+<script setup lang="ts">
+import type { ButtonProps } from "./types";
+import { ref } from "vue";
+
+defineOptions({
+  name: "ErButton",
+});
+const props = withDefaults(defineProps<ButtonProps>(), {
+  tag: "button",
+  nativeType: "button",
+});
+
+const slot = defineSlots();
+
+const _ref = ref<HTMLButtonElement>();
+</script>
+```
+
+5、全局样式
+
+```css
+/* 全局的css变量, 方便做主题切换 */
+:root {
+  /* colors */
+  --er-color-white: #ffffff;
+  --er-color-black: #000000;
+  --colors: (
+    primary: #409eff,
+    success: #67c23a,
+    warning: #e6a23c,
+    danger: #f56c6c,
+    info: #909399
+  );
+  --er-bg-color: #ffffff;
+  --er-bg-color-page: #f2f3f5;
+  --er-bg-color-overlay: #ffffff;
+  --er-text-color-primary: #303133;
+  --er-text-color-regular: #606266;
+  --er-text-color-secondary: #909399;
+  --er-text-color-placeholder: #a8abb2;
+  --er-text-color-disabled: #c0c4cc;
+  --er-border-color: #dcdfe6;
+  --er-border-color-light: #e4e7ed;
+  --er-border-color-lighter: #ebeef5;
+  --er-border-color-extra-light: #f2f6fc;
+  --er-border-color-dark: #d4d7de;
+  --er-border-color-darker: #cdd0d6;
+  --er-fill-color: #f0f2f5;
+  --er-fill-color-light: #f5f7fa;
+  --er-fill-color-lighter: #fafafa;
+  --er-fill-color-extra-light: #fafcff;
+  --er-fill-color-dark: #ebedf0;
+  --er-fill-color-darker: #e6e8eb;
+  --er-fill-color-blank: #ffffff;
+
+  @each $val, $color in var(--colors) {
+    --er-color-$(val): $(color);
+    @for $i from 3 to 9 {
+      --er-color-$(val)-light-$(i): mix(#fff, $(color), 0$ (i));
+    }
+    --er-color-$(val)-dark-2: mix(#000, $(color), 0.2);
+  }
+
+  /* border */
+  --er-border-width: 1px;
+  --er-border-style: solid;
+  --er-border-color-hover: var(--er-text-color-disabled);
+  --er-border: var(--er-border-width) var(--er-border-style)
+    var(--er-border-color);
+  --er-border-radius-base: 4px;
+  --er-border-radius-small: 2px;
+  --er-border-radius-round: 20px;
+  --er-border-radius-circle: 100%;
+
+  /*font*/
+  --er-font-size-extra-large: 20px;
+  --er-font-size-large: 18px;
+  --er-font-size-medium: 16px;
+  --er-font-size-base: 14px;
+  --er-font-size-small: 13px;
+  --er-font-size-extra-small: 12px;
+  --er-font-family: "Helvetica Neue", Helvetica, "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "\5fae\8f6f\96c5\9ed1", Arial,
+    sans-serif;
+  --er-font-weight-primary: 500;
+
+  /*disabled*/
+  --er-disabled-bg-color: var(--er-fill-color-light);
+  --er-disabled-text-color: var(--er-text-color-placeholder);
+  --er-disabled-border-color: var(--er-border-color-light);
+
+  /*animation*/
+  --er-transition-duration: 0.4s;
+  --er-transition-duration-fast: 0.2s;
+}
+```
+
+6、按钮样式, 新建 style.css， 具体请看代码注释
+引入
+
+```html
+<style scoped>
+  @import "./style.css";
+</style>
+```
+
+7、去掉 playground 的默认样式
+
+#### 十一、引入 storybook
+
+1、官网——>get start ——> Vue with Vite ——> 复制命令 pnpm dlx storybook@latest init
+确定在 play 下面 执行
+然后选择项目类型 Vue3
+
+最后会在 src 底下多一个 stories 目录。 他会生成自己的一个示例
+
+2、改造
+只留Button.stories.js, 并改成ts。代码全删了
+
+```typescript
+import type { Meta, StoryObj, ArgTypes } from "@storybook/vue3";
+import { fn, within, userEvent, expect } from "@storybook/test";
+import { ErButton } from "toy-element";
+import "toy-element/dist/index.css";
+
+type Story = StoryObj<typeof ErButton> & { argTypes?: ArgTypes };
+
+const meta: Meta<typeof ErButton> = {
+  title: "Example/Button",
+  component: ErButton,
+  tags: ["autodocs"],
+  argTypes: {
+    type: {
+      control: { type: "select" },
+      options: ["primary", "success", "warning", "danger", "info", ""],
+    },
+    size: {
+      control: { type: "select" },
+      options: ["large", "default", "small", ""],
+    },
+    disabled: {
+      control: "boolean",
+    },
+    loading: {
+      control: "boolean",
+    },
+    useThrottle: {
+      control: "boolean",
+    },
+    throttleDuration: {
+      control: "number",
+    },
+    autofocus: {
+      control: "boolean",
+    },
+    tag: {
+      control: { type: "select" },
+      options: ["button", "a", "div"],
+    },
+    nativeType: {
+      control: { type: "select" },
+      options: ["button", "submit", "reset", ""],
+    },
+    icon: {
+      control: { type: "text" },
+    },
+    loadingIcon: {
+      control: { type: "text" },
+    },
+  },
+  args: { onClick: fn() },
+};
+
+const container = (val: string) => `
+<div style="margin:5px">
+  ${val}
+</div>
+`;
+
+export const Default: Story & { args: { content: string } } = {
+  argTypes: {
+    content: {
+      control: { type: "text" },
+    },
+  },
+  args: {
+    type: "primary",
+    content: "Button",
+  },
+  render: (args) => ({
+    components: { ErButton },
+    setup() {
+      return { args };
+    },
+    template: container(
+      `<er-button v-bind="args">{{args.content}}</er-button>`
+    ),
+  }),
+};
+
+export default meta;
+```
+
+#### 十二、编写Icon组件
+
+1、types.ts
+
+```typescript
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+
+export interface IconProps {
+  border?: boolean;
+  fixedWidth?: boolean;
+  flip?: "horizontal" | "vertical" | "both";
+  icon: object | Array<string> | string | IconDefinition;
+  mask?: object | Array<string> | string;
+  listItem?: boolean;
+  pull?: "right" | "left";
+  pulse?: boolean;
+  rotation?: 90 | 180 | 270 | "90" | "180" | "270";
+  swapOpacity?: boolean;
+  size?:
+    | "2xs"
+    | "xs"
+    | "sm"
+    | "lg"
+    | "xl"
+    | "2xl"
+    | "1x"
+    | "2x"
+    | "3x"
+    | "4x"
+    | "5x"
+    | "6x"
+    | "7x"
+    | "8x"
+    | "9x"
+    | "10x";
+  spin?: boolean;
+  transform?: object | string;
+  symbol?: boolean | string;
+  title?: string;
+  inverse?: boolean;
+  bounce?: boolean;
+  shake?: boolean;
+  beat?: boolean;
+  fade?: boolean;
+  beatFade?: boolean;
+  spinPulse?: boolean;
+  spinReverse?: boolean;
+  type?: "primary" | "success" | "warning" | "danger" | "info";
+  color?: string;
+}
+```
+
+Icon.vue
+
+```vue
+<script setup lang="ts">
+import type { IconProps } from "./types";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import { computed } from "vue";
+import { omit } from "lodash-es";
+
+defineOptions({
+  name: "ErIcon",
+  inheriAttrs: false,
+});
+
+const props = defineProps<IconProps>();
+const filterProps = computed(() => omit(props, ["type", "color"]));
+const customStyles = computed(() => ({ color: props.color ?? void 0 }));
+</script>
+
+<template>
+  <i
+    class="er-icon"
+    :class="[`er-icon-${props.type}`]"
+    :style="customStyles"
+    v-bind="$attrs"
+  >
+    <font-awesome-icon v-bind="filterProps" />
+  </i>
+</template>
+
+<style scoped>
+@import "./style.css";
+</style>
+```
+
+2、在Button组件使用Icon
+3、Icon组件在storybook报错
+
+```shell
+ReferenceError: Cannot access 'd' before initialization
+```
+
+要嘛去掉style的scoped, 要么vite.es.config.ts添加
+
+```typescript
+if (id.includes("/packages/utils") || id.includes("plugin-vue:export-helper")) {
+  return "utils";
+}
+```
+
+#### 十三、ButtonGroup组件
+
+0、Vue的依赖注入
+1、直接在Button目录创建ButtonGroup.vue
+2、定义ButtonGroup的types
+
+```typescript
+export interface ButtonGroupProps {
+  size?: ButtonSize;
+  type?: ButtonType;
+  disabled?: boolean;
+}
+
+export interface ButtonGroupContext {
+  size?: ButtonSize;
+  type?: ButtonType;
+  disabled?: boolean;
+}
+```
+
+3、新建contants.ts, 定义一个symbol, 作为依赖注入的key
+
+```typescript
+import type { InjectionKey } from "vue";
+import type { ButtonGroupContext } from "./types";
+
+export const BUTTON_GROUP_CTX_KEY: InjectionKey<ButtonGroupContext> = Symbol(
+  "BUTTON_GROUP_CTX_KEY"
+);
+```
+
+4、ButtonGroup的size、type、disabled属性会影响到Button组件
+
+```vue
+<script setup lang="ts">
+import type { ButtonGroupProps } from "./types";
+import { provide, reactive, toRef } from "vue";
+import { BUTTON_GROUP_CTX_KEY } from "./contants";
+
+defineOptions({
+  name: "ErButtonGroup",
+});
+const props = defineProps<ButtonGroupProps>();
+
+provide(
+  BUTTON_GROUP_CTX_KEY,
+  reactive({
+    size: toRef(props, "size"),
+    type: toRef(props, "type"),
+    disabled: toRef(props, "disabled"),
+  })
+);
+</script>
+
+<template>
+  <div class="er-button-group">
+    <slot></slot>
+  </div>
+</template>
+
+<style scoped>
+@import "./style.css";
+</style>
+```
+
+#### 十四、发布npm
+
+1、一点优化
+core的入口index.ts
+
+```typescript
+export * from "../components";
+```
+
+去掉 vitest.config.ts 生成的类型文件, 通过 tsconfig.build.json的exclude字段
+
+```json
+"exclude": ["packages/components/vitest.config.ts"]
+```
+
+之前分包打包组件, 用的是一个数组, 现在通过读目录的方式, 获取组件
+
+```typescript
+function getDirectoriesSync(basePath: string) {
+  const entries = readdirSync(basePath, { withFileTypes: true });
+
+  return map(
+    filter(entries, (entry) => entry.isDirectory()),
+    (entry) => entry.name
+  );
+}
+```
+
+2、nrm -- NPM registry manager
+
+```shell
+npm install -g nrm
+```
+
+查看所有的源
+
+```shell
+nrm ls
+```
+
+确保使用npm 源
+
+```shell
+nrm use npm
+```
+
+3、查看是否在登录
+
+```shell
+npm whoami
+```
+
+如果没有登录要去运行
+
+```shell
+npm login
+```
+
+4、我们要发布分包下面的dist产物。切到core目录
+发布
+
+```shell
+npm publish
+```
+
+5、手工发布太麻烦了, 试着自动发布, 通过 release it
+core安装 rimraf
+
+```shell
+pnpm add rimraf -Dw
+pnpm add release-it -Dw
+```
+
+写scripts
+
+```json
+"clean": "rimraf dist",
+"release": "release-it"
+```
+
+6、版本号
+
+```shell
+#语义化版本号的三个部分
+在语义化版本控制（Semantic Versioning，简称SemVer）中，版本号由三个主要部分组成：主版本号
+（MAJOR）、次版本号（MINOR）和修订号（PATCH），格式为：~主版本号，次版本号.修订号`。
+#主版本号（MA】OR）---- Vue2 到 Vue3
+当你做了不兼容的API修改时，增加主版本号。
+这表示该版本可能包含重大更改，使用此新版本的用户可能需要对代码进行相应的修改。
+#次版本号（MINOR）
+当你添加了向下兼容的功能时，增加次版本号。
+这意味着新版本添加了新功能，但现有的PI保持不变，因此使用新版本的用户不需要修改代码。
+#修订号（PATCH）
+~当你做了向下兼容的问题修正时，增加修订号。
+-这表示新版本修复了一些问题，但并没有引入新功能，使用此版本的用户可以期望获得更稳定的体验。
+#预发布版本标识符
+可以附加一个预发布版本标识符（如`alpha，~beta`，rc等）来标识开发中的版本，通常用于测试阶段。#构建元数据
+可以用于提供有关构建的附加信息，如构建时间或构建系统信息。
+```
+
+release的时候会默认执行 git push, 但是不会选择分支, 我们需要给他设定个默认分支
+
+```shell
+git push --set-upstream origin main
 ```

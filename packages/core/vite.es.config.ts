@@ -2,6 +2,8 @@ import { defineConfig } from "vite"
 import vue from "@vitejs/plugin-vue"
 import { resolve } from "path"
 import dts from "vite-plugin-dts"
+import { readdirSync } from "fs"
+import { filter, map } from "lodash-es"
 
 const COMP_NAMES = [
     "Alert",
@@ -22,6 +24,15 @@ const COMP_NAMES = [
     "Tooltip",
     "Upload"
 ] as const
+
+function getDirectoriesSync(basePath: string) {
+    const entries = readdirSync(basePath, { withFileTypes: true });
+
+    return map(
+        filter(entries, (entry) => entry.isDirectory()),
+        (entry) => entry.name
+    )
+}
 
 export default defineConfig({
     plugins: [vue(), dts({
@@ -63,12 +74,12 @@ export default defineConfig({
                     if (id.includes("/packages/hooks")) {
                         return "hooks"
                     }
-                    if (id.includes("/packages/utils")) {
+                    if (id.includes("/packages/utils") || id.includes("plugin-vue:export-helper")) {
                         return "utils"
                     }
-                    for (const item of COMP_NAMES) {
-                        if (id.includes(`/packages/components/${item}`)) {
-                            return item
+                    for (const dirName of getDirectoriesSync("../components")) {
+                        if (id.includes(`/packages/components/${dirName}`)) {
+                            return dirName
                         }
                     }
                 }
