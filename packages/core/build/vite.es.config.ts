@@ -3,9 +3,9 @@ import vue from "@vitejs/plugin-vue"
 import { resolve } from "path"
 import dts from "vite-plugin-dts"
 import { readdirSync } from "fs"
-import { filter, map, delay } from "lodash-es"
+import { filter, map, delay, defer } from "lodash-es"
 import shell from "shelljs"
-import { readFileSync } from "fs"
+import { readdir } from "fs"
 import terser from "@rollup/plugin-terser"
 import hooks from "./hooksPlugin"
 
@@ -45,13 +45,12 @@ function getDirectoriesSync(basePath: string) {
 }
 
 function moveStyles() {
-    try {
-        readFileSync("./dist/umd/index.css.gz")
-        shell.cp("./dist/umd/index.css", "./dist/index.css")
-    } catch (_) {
-        delay(moveStyles, TRY_MOVE_STYLES_DELAY)
-    }
+    readdir("./dist/es/theme", (err) => {
+        if (err) return delay(moveStyles, TRY_MOVE_STYLES_DELAY)
+        defer(() => shell.mv("./dist/es/theme", "./dist"))
+    })
 }
+
 
 export default defineConfig({
     plugins: [vue(), dts({
@@ -97,7 +96,7 @@ export default defineConfig({
         // },
         cssCodeSplit: true,  // css分包
         lib: {
-            entry: resolve(__dirname, "./index.ts"),
+            entry: resolve(__dirname, "../index.ts"),
             name: "ToyElement",
             fileName: "index",
             formats: ["es"]
