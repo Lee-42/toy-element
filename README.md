@@ -1330,3 +1330,235 @@ release的时候会默认执行 git push, 但是不会选择分支, 我们需要
 ```shell
 git push --set-upstream origin main
 ```
+
+#### 十五、避坑指南
+
+1、
+
+#### 十六、Collapse组件
+
+1、父组件、子组件之间要同步展开状态
+2、TDD
+3、types.ts
+
+```typescript
+import type { Ref } from "vue";
+export type CollapseItemName = string | number;
+
+export interface CollapseProps {
+  modelValue: CollapseItemName[];
+  accordion?: boolean;
+}
+
+export interface CollapseItemProps {
+  name: CollapseItemName;
+  title?: string;
+  disabled?: boolean;
+}
+
+export interface CollapseContext {
+  activeNames: Ref<CollapseItemName[]>;
+  handleItemClick(name: CollapseItemName): void;
+}
+
+export interface CollapseEmits {
+  (e: "update:modelValue", value: CollapseItemName[]): void;
+  (e: "change", value: CollapseItemName[]): void;
+}
+```
+
+Collapse.vue
+CollapseItem.vue
+
+4、添加折叠面板的storybook
+
+5、添加动画
+
+#### 十七、实现warning工具方法
+
+1、utils/error.ts
+
+```typescript
+import { isString } from "lodash-es";
+
+class ErUIError extends Error {
+  constructor(msg: string) {
+    super(msg);
+    this.name = "ErUIError";
+  }
+}
+
+export function throwError(scope: string, msg: string) {
+  throw new ErUIError(`[${scope}]: ${msg}`);
+}
+
+export function debugWarn(error: Error): void;
+export function debugWarn(scope: string, msg: string): void;
+export function debugWarn(scope: string | Error, msg?: string) {
+  if (process.env.NODE_ENV !== "production") {
+    const err = isString(scope) ? new ErUIError(`[${scope}]: ${msg}`) : msg;
+    console.warn(err);
+  }
+}
+```
+
+#### 十八、打包优化
+
+1、将所有的样式进行分包, 可以做到按需引入
+vite.es.config.ts
+
+```typescript
+// cssCodeSplit: true,  // css分包
+if (assetInfo.type === "asset" && /\.(css)$/i.test(assetInfo.name as string)) {
+  return "theme/[name].[ext]";
+}
+```
+
+2、对umd格式的打包产物进行gzip的压缩
+core 安装
+
+```shell
+pnpm add vite-plugin-compression2 -D
+```
+
+```typescript
+import { compression } from "vite-plugin-compression2";
+compression({
+  include: /.(cjs|css)$/i,
+});
+```
+
+打包的时候会生成gzip的包, 这个包的作用就是服务端在配置nginx或者上传到CDN要做的事情
+
+3、自定义vite插件, 实现删除dist, 不用rmraf、move-file库了
+去掉rimraf、move-file-cli依赖
+去掉clean、move-style脚本
+安装shell.js
+
+```shell
+pnpm install shell.js -wD
+```
+
+新建hooksPlugin.ts
+
+```typescript
+import { each, isFunction } from "lodash-es";
+import shell from "shelljs";
+
+export default function hooksPlugin({
+  rmFiles = [],
+  beforeBuild,
+  afterBuild,
+}: {
+  rmFiles?: string[];
+  beforeBuild?: Function;
+  afterBuild?: Function;
+}) {
+  return {
+    name: "hooks-plugin",
+    buildStart() {
+      each(rmFiles, (fName) => shell.rm("-rf", fName));
+      isFunction(beforeBuild) && beforeBuild();
+    },
+    buildEnd(err?: Error) {
+      !err && isFunction(afterBuild) && afterBuild();
+    },
+  };
+}
+```
+
+```typescript
+function moveStyles() {
+  try {
+    readFileSync("./dist/umd/index.css.gz");
+    shell.cp("./dist/umd/index.css", "./dist/index.css");
+  } catch (_) {
+    delay(moveStyles, TRY_MOVE_STYLES_DELAY);
+  }
+}
+```
+
+4、minify混淆有两个选项,esbuild和terser。 terser需要引入
+
+```shell
+pnpm add terser @rollup/plugin-terser -D
+```
+
+开启minify的配置为terser, 可以在 terserOptions 或者在 插件里配置选项
+但是如果要实现条件编译, 只能在插件里配置
+
+```typescript
+terser({
+  compress: {
+    sequences: isProd,
+    arguments: isProd,
+    drop_console: isProd && ["log"],
+    drop_debugger: isProd,
+    passes: isProd ? 4 : 1,
+    global_defs: {
+      "@DEV": JSON.stringify(isDev),
+      "@PROD": JSON.stringify(isProd),
+      "@TEST": JSON.stringify(isTest),
+    },
+  },
+  format: {
+    semicolons: false,
+    shorthand: isProd,
+    braces: !isProd,
+    beautify: !isProd,
+    comments: !isProd,
+  },
+  mangle: {
+    toplevel: isProd,
+    eval: isProd,
+    keep_classnames: isDev,
+    keep_fnames: isDev,
+  },
+});
+```
+
+5、如何做环境切换呢, 使用 cross-env
+
+```shell
+pnpm add cross-env -wD
+```
+
+新建 env.d.ts
+
+```typescript
+declare const PROD: boolean;
+declare const DEV: boolean;
+declare const TEST: boolean;
+```
+
+tsconfig.json和tsconfig.build.json的includes字段包含这个文件
+
+```typescript
+"include": [
+  "env.d.ts"
+]
+```
+
+components/vite.config.ts, 增加环境配置
+
+```typescript
+define: {
+    PROD: JSON.stringify(false),
+    DEV: JSON.stringify(false),
+    TEST: JSON.stringify(true),
+}
+```
+
+改造顶层package.json, 加一些cross-env
+
+```json
+"scripts": {
+  "dev": "pnpm run build && pnpm --filter @toy-element/play dev",
+  "story": "pnpm run build && pnpm --filter @toy-element/play storybook",
+  "docs:dev": "pnpm --filter @toy-element/docs dev",
+  "docs:build": "pnpm --filter @toy-element/docs build",
+  "test": "cross-env NODE_ENV=test pnpm --filter @toy-element/components test",
+  "build": "cross-env NODE_ENV=production pnpm --filter toy-element build",
+  "build:dev": "cross-env NODE_ENV=development pnpm --filter toy-element build:wath"
+}
+```

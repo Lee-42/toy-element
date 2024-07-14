@@ -3,7 +3,13 @@ import vue from "@vitejs/plugin-vue"
 import { resolve } from "path"
 import dts from "vite-plugin-dts"
 import { readdirSync } from "fs"
-import { filter, map } from "lodash-es"
+import { filter, map, delay } from "lodash-es"
+import shell from "shelljs"
+import { readFileSync } from "fs"
+import terser from "@rollup/plugin-terser"
+import hooks from "./hooksPlugin"
+
+const TRY_MOVE_STYLES_DELAY = 800
 
 const COMP_NAMES = [
     "Alert",
@@ -25,6 +31,10 @@ const COMP_NAMES = [
     "Upload"
 ] as const
 
+const isProd = process.env.NODE_ENV === "production"
+const isDev = process.env.NODE_ENV === "development"
+const isTest = process.env.NODE_ENV === "test"
+
 function getDirectoriesSync(basePath: string) {
     const entries = readdirSync(basePath, { withFileTypes: true });
 
@@ -34,13 +44,58 @@ function getDirectoriesSync(basePath: string) {
     )
 }
 
+function moveStyles() {
+    try {
+        readFileSync("./dist/umd/index.css.gz")
+        shell.cp("./dist/umd/index.css", "./dist/index.css")
+    } catch (_) {
+        delay(moveStyles, TRY_MOVE_STYLES_DELAY)
+    }
+}
+
 export default defineConfig({
     plugins: [vue(), dts({
         tsconfigPath: "../../tsconfig.build.json",
         outDir: "dist/types"
+    }),
+    hooks({
+        rmFiles: ["./dist/es", "./dist/theme", "./dist/types"],
+        afterBuild: moveStyles
+    }),
+    terser({
+        compress: {
+            drop_console: ["log"],
+            drop_debugger: true,
+            passes: 3,
+            global_defs: {
+                "@DEV": JSON.stringify(isDev),
+                "@PROD": JSON.stringify(isProd),
+                "@TEST": JSON.stringify(isTest)
+            }
+        },
+        format: {
+            semicolons: false,
+            shorthand: isProd,
+            braces: !isProd,
+            beautify: !isProd,
+            comments: !isProd,
+        },
+        mangle: {
+            toplevel: isProd,
+            eval: isProd,
+            keep_classnames: isDev,
+            keep_fnames: isDev
+        }
     })],
     build: {
         outDir: "dist/es",
+        // minify: false,  // 关闭混淆, 通过插件来混淆
+        // terserOptions: {
+        //     compress: {},
+        //     format: {},
+        //     mangle: {}
+        // },
+        cssCodeSplit: true,  // css分包
         lib: {
             entry: resolve(__dirname, "./index.ts"),
             name: "ToyElement",
@@ -63,6 +118,12 @@ export default defineConfig({
                 },
                 assetFileNames: (assetInfo) => {
                     if (assetInfo.name === "style.css") return "index.css";
+                    if (
+                        assetInfo.type === "asset" &&
+                        /\.(css)$/i.test(assetInfo.name as string)
+                    ) {
+                        return "theme/[name].[ext]";
+                    }
                     return assetInfo.name as string;
                 },
                 // 分包
