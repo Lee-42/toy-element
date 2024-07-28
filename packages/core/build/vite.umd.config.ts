@@ -2,7 +2,7 @@ import { defineConfig } from "vite"
 import vue from "@vitejs/plugin-vue"
 import { compression } from "vite-plugin-compression2"
 import { resolve } from "path"
-import { readdir, readFileSync } from "fs"
+import { readdir } from "fs"
 import shell from "shelljs"
 import { defer, delay } from "lodash-es"
 import terser from "@rollup/plugin-terser"
@@ -44,7 +44,7 @@ export default defineConfig({
     build: {
         outDir: "dist/umd",
         lib: {
-            entry: resolve(__dirname, "./index.ts"),
+            entry: resolve(__dirname, "../index.ts"),
             name: "ToyElement",
             fileName: "index",
             formats: ["umd"]

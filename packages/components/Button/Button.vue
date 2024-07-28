@@ -22,19 +22,19 @@ const slots = defineSlots();
 const ctx = inject(BUTTON_GROUP_CTX_KEY, void 0);
 const _ref = ref<HTMLButtonElement>();
 
-const size = computed(() => ctx?.size ?? props?.size ?? "");
-const type = computed(() => ctx?.type ?? props?.type ?? "");
+const size = computed(() => ctx?.size ?? props?.size ?? ""); // 尺寸优先级 ButtonGroup > props
+const type = computed(() => ctx?.type ?? props?.type ?? ""); // 类型优先级 ButtonGroup > props
 const disabled = computed(() => ctx?.disabled || props?.disabled || false);
 
 const iconStyle = computed(() => ({
   marginRight: slots.default ? "6px" : "0px",
-}));
+})); // 加icon的时候要和按钮的默认slot内容保保持间隔
 
 const handleBtnClick = (e: MouseEvent) => emits("click", e);
 const handleBtnClickThrottle = throttle(
   handleBtnClick,
   props.throttleDuration,
-  { trailing: false }
+  { trailing: false } // 是否指定在超时的后沿调用。
 );
 
 defineExpose<ButtonInstance>({

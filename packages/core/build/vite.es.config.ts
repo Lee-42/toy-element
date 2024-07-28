@@ -11,26 +11,6 @@ import hooks from "./hooksPlugin"
 
 const TRY_MOVE_STYLES_DELAY = 800
 
-const COMP_NAMES = [
-    "Alert",
-    "Button",
-    "Collapse",
-    "Dropdown",
-    "Form",
-    "Icon",
-    "Input",
-    "Loading",
-    "Message",
-    "MessageBox",
-    "Notification",
-    "Overlay",
-    "Popconfirm",
-    "Select",
-    "Switch",
-    "Tooltip",
-    "Upload"
-] as const
-
 const isProd = process.env.NODE_ENV === "production"
 const isDev = process.env.NODE_ENV === "development"
 const isTest = process.env.NODE_ENV === "test"
@@ -51,6 +31,7 @@ function moveStyles() {
     })
 }
 
+console.log("eseseseses")
 
 export default defineConfig({
     plugins: [vue(), dts({

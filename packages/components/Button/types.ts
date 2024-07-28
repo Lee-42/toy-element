@@ -11,7 +11,7 @@ export interface ButtonProps {
     round?: boolean;
     circle?: boolean;
     disabled?: boolean;
-    autofocus?: boolean;
+    autofocus?: boolean; // 属性规定当页面加载时按钮应当自动地获得焦点
     nativeType?: NativeType;
     icon?: string;
     loading?: boolean;

@@ -20,7 +20,7 @@ const slots = defineSlots();
 const visiable = ref(true);
 
 const iconName = computed(() => typeIconMap.get(props.type) ?? "circle-info");
-const withDescription = computed(() => props.description || slots.default);
+const withDescription = computed(() => props.description || slots.default); // 是否有描述
 
 function close() {
   emits("close");
@@ -72,7 +72,6 @@ defineExpose<AlertInstance>({
     </div>
   </transition>
 </template>
-
 
 <style scoped>
 @import "./style.css";

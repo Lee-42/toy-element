@@ -3,7 +3,7 @@ import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 export interface IconProps {
     border?: boolean;
     fixedWidth?: boolean;
-    flip?: "horizontal" | "vertical" | "both";
+    flip?: "horizontal" | "vertical" | "both"; // 翻转
     icon: object | Array<string> | string | IconDefinition;
     mask?: object | Array<string> | string;
     listItem?: boolean;
@@ -28,7 +28,7 @@ export interface IconProps {
     | "8x"
     | "9x"
     | "10x";
-    spin?: boolean;
+    spin?: boolean; // 旋转
     transform?: object | string;
     symbol?: boolean | string;
     title?: string;
