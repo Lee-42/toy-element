@@ -7,7 +7,7 @@ import { filter, map, delay, defer } from "lodash-es"
 import shell from "shelljs"
 import { readdir } from "fs"
 import terser from "@rollup/plugin-terser"
-import hooks from "./hooksPlugin"
+import { hookPlugin as hooks } from "@toy-element/vite-plugins"
 
 const TRY_MOVE_STYLES_DELAY = 800
 

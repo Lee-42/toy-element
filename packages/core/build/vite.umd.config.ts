@@ -6,7 +6,7 @@ import { readdir } from "fs"
 import shell from "shelljs"
 import { defer, delay } from "lodash-es"
 import terser from "@rollup/plugin-terser"
-import hooks from "./hooksPlugin"
+import { hookPlugin as hooks } from "@toy-element/vite-plugins"
 
 const TRY_MOVE_STYLES_DELAY = 800
 

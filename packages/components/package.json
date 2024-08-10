@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
-    "test": "vitest --coverage"
+    "test": "cross-env NODE_ENV=test pnpm --filter @toy-element/hooks build && vitest --run --coverage",
+    "test:watch": "cross-env NODE_ENV=test pnpm --filter @toy-element/hooks build && vitest --coverage"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +16,5 @@
     "@toy-element/theme": "workspace:*",
     "@toy-element/utils": "workspace:*"
   },
-  "devDependencies": {
-  }
+  "devDependencies": {}
 }
