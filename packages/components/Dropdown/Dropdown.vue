@@ -41,6 +41,9 @@ function handleItemClick(e: DropdownItemProps) {
   props.hideOnClick && tooltipRef.value?.hide();
   !isNil(e.command) && emits("command", e.command);
 }
+
+!TEST && useDisabledStyle()
+
 defineExpose<DropdownInstance>({
   open: () => tooltipRef.value?.show(),
   close: () => tooltipRef.value?.hide()

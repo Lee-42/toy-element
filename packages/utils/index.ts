@@ -1,3 +1,5 @@
+import { defineComponent } from 'vue'
+import { isFunction } from 'lodash-es'
 
 export const typeIconMap = new Map([
   ["info", "circle-info"],
@@ -10,3 +12,15 @@ export const typeIconMap = new Map([
 export * from "./install"
 export * from "./error"
 export * from "./style"
+
+export const RenderVnode = defineComponent({
+  props: {
+    vNode: {
+      type: [String, Object, Function],
+      required: true,
+    },
+  },
+  setup(props) {
+    return () => (isFunction(props.vNode) ? props.vNode() : props.vNode);
+  },
+});

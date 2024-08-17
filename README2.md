@@ -66,6 +66,79 @@ import { hookPlugin as hooks } from "@toy-element/vite-plugins";
 #### 六、DropDown
 1、
 
+#### 七、useDisabledStyle、国际化
+1、i18n、i10n
+2、 安装
+```shell
+pnpm add vue3-i18n -Dw
+```
+3、packages新建locale目录， npm init
+```json
+{
+  "name": "@toy-element/locale",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "module": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
+```
+拷贝名称到根目录的pakage.json
+然后切到根目录执行pnpm i
+
+4、新建index.ts
+```ts
+export { default as en } from './lang/en'
+export { default as ja } from './lang/ja'
+export { default as ko } from './lang/ko'
+export { default as zhCn } from './lang/zh-cn'
+export { default as zhTw } from './lang/zh-tw'
+
+export type TranslatePair = {
+    [key: string]: string | string[] | TranslatePair
+}
+
+export type Language = {
+    name: string
+    el: TranslatePair
+}
+```
+
+5、新建useLocale.ts
+```ts
+import { inject, type Ref } from "vue"
+import { omit } from 'lodash-es'
+import { createI18n, i18nSymbol, type I18nInstance } from 'vue3-i18n'
+import type { Language } from "@toy-element/locale"
+import English from "@toy-element/locale/lang/en"
+
+export function useLocale(localeOverrides?: Ref<Language>) {
+    if (!localeOverrides) {
+        return omit(<I18nInstance>(inject(i18nSymbol, createI18n({ locale: English.name, messages: { en: English.el } }))))
+    }
+    return omit(createI18n({
+        locale: localeOverrides.value.name,
+        messages: {
+            en: English.el,
+            [localeOverrides.value.name]: localeOverrides.value.el
+        }
+    }))
+}
+```
+
+6、新建ConfigProvider组件
+makeInstaller.ts
+
+
+#### 八、message组件
+1、指令式的调用方式
+
+
 
 
 

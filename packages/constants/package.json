@@ -1,0 +1,10 @@
+{
+  "name": "@toy-element/constants",
+  "private":true,
+  "version": "1.0.0",
+  "main": "index.ts",
+  "module": "index.ts",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
